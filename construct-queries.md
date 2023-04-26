@@ -228,7 +228,7 @@ select * where { ?climate_division a kwg-lite:Place.
 }
 ```
 
-* d. maximumMonthlyTemperatureInCelsius
+* d. maximumMonthlyTemperatureInCelsius in 2021
 
 ```sparql
 select * where{ ?climate_division a kwg-lite:Place.
