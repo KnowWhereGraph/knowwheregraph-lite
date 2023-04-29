@@ -796,6 +796,7 @@ WHERE
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
     BIND( IRI(?liteHazard) AS ?h ).
  }
+ ```
 
 ## Query 18
 
