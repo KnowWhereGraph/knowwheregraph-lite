@@ -78,7 +78,6 @@ WHERE
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
     BIND( IRI(?liteHazard) AS ?h ).
  }
-#GROUP BY ?hazard
 ```
 
 * c. damageToInfrastructureInDollars (ONLY NOAA hazards have this information) 
@@ -167,7 +166,7 @@ WHERE
     BIND(STRAFTER(STR(?place), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
     BIND( IRI(?litePlace) AS ?p ).
- }
+}
  ```
  
  ## Query 5
@@ -265,13 +264,39 @@ WHERE
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
     BIND( IRI(?litePlace) AS ?p ).
  }
-
 ```
 
 * b. dollarDamageOfFiresImpactingPlace2021
 ```sparql
-
-
+CONSTRUCT { ?p kwgl-ont:numberOfHurricanesImpactingPlace2018 ?count.
+   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2019 ?count.
+   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2020 ?count.
+   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2021 ?count.
+   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2022 ?count.
+}
+WHERE
+ {
+    {
+        SELECT ?admin_region (COUNT (DISTINCT ?hurricane) AS ?count) 
+		WHERE
+ 		{
+            {?hurricane a kwg-ont:NOAAHurricane} UNION {?hurricane a kwg-ont:NOAAMarineHurricaneTyphoon}
+    		 ?hurricane kwg-ont:spatialRelation ?admin_region;
+    					kwg-ont:hasTemporalScope ?time .
+    		?admin_region a kwg-ont:AdministrativeRegion.
+    		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
+    		FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2019"^^xsd:gYear)
+            #FILTER (?year = "2020"^^xsd:gYear)
+            #FILTER (?year = "2021"^^xsd:gYear)
+            #FILTER (?year = "2022"^^xsd:gYear)
+ 		}
+		GROUP BY ?admin_region
+    }
+    BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
+    BIND( IRI(?litePlace) AS ?p ).
+ }
 ```
 
 ## Query 8
@@ -279,7 +304,7 @@ WHERE
  *  a. numberOfHurricanesImpactingPlace2021
 -- Issue with triplification – not all NOAA hazards are linked to administrative region (for example NOAA Fires are linked but NOAA Hurricanes are not linked
 
-* b. dollarDamageOfHurricanesImpactingPlace2021 (NOAAHurricane and NOAAMarinelHurricaneTyphoon)
+* b.numberOfHurricanesImpactingPlace2021 (NOAAHurricane and NOAAMarinelHurricaneTyphoon)
 
 ```sparql
 CONSTRUCT { ?p kwgl-ont:numberOfHurricanesImpactingPlace2018 ?count.
@@ -313,9 +338,50 @@ WHERE
  }
 ```
 
-* c. Dollar damage
+* c. dollarDamageOfHurricanesImpactingPlace2021
 
 ```sparql
+CONSTRUCT { ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2018 ?total.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2019 ?count.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2020 ?count.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2021 ?count.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2022 ?count.
+}
+WHERE
+ {
+    {
+        SELECT ?admin_region ?total
+		WHERE
+        {
+ 		{?hurricane a kwg-ont:NOAAHurricane} UNION {?hurricane a kwg-ont:NOAAMarineHurricaneTyphoon}
+    		?hurricane 	kwg-ont:spatialRelation ?nwZone;
+                  		sosa:isFeatureOfInterestOf ?obs_collection;
+    					kwg-ont:hasTemporalScope ?time .
+    		?nwZone kwg-ont:spatialRelation ?admin_region.
+    		?admin_region a kwg-ont:AdministrativeRegion_3.
+    		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
+            FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2019"^^xsd:gYear)
+            #FILTER (?year = "2020"^^xsd:gYear)
+            #FILTER (?year = "2021"^^xsd:gYear)
+            #FILTER (?year = "2022"^^xsd:gYear)
+    ?obs_collection a kwg-ont:ImpactObservationCollection;
+                    sosa:hasMember ?obs1;
+            		sosa:hasMember ?obs2.
+    		?obs1 sosa:hasSimpleResult ?property_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageProperty.
+    		?obs2 sosa:hasSimpleResult ?crop_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageCrop.
+   			BIND (?property_damage + ?crop_damage AS ?total)
+     		FILTER (?total > 0)
+ 		}
+		GROUP BY ?admin_region ?total
+    }
+    BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
+    BIND( IRI(?litePlace) AS ?p ).
+
+ }
 ```
 
 ## Query 9
@@ -399,6 +465,47 @@ WHERE
 * b. Dollar damage (this query is altered to extract all data for the last 5 yrs)
 
 ```sparql
+CONSTRUCT { ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2018 ?total.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2019 ?count.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2020 ?count.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2021 ?count.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2022 ?count.
+}
+WHERE
+ {
+    {
+        SELECT ?admin_region ?total
+		WHERE
+        {
+ 		?tornado a kwg-ont:NOAATornado;
+               kwg-ont:spatialRelation ?nwZone;
+                  		sosa:isFeatureOfInterestOf ?obs_collection;
+    					kwg-ont:hasTemporalScope ?time .
+    		?nwZone kwg-ont:spatialRelation ?admin_region.
+    		?admin_region a kwg-ont:AdministrativeRegion_3.
+    		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
+            FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2019"^^xsd:gYear)
+            #FILTER (?year = "2020"^^xsd:gYear)
+            #FILTER (?year = "2021"^^xsd:gYear)
+            #FILTER (?year = "2022"^^xsd:gYear)
+    ?obs_collection a kwg-ont:ImpactObservationCollection;
+                    sosa:hasMember ?obs1;
+            		sosa:hasMember ?obs2.
+    		?obs1 sosa:hasSimpleResult ?property_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageProperty.
+    		?obs2 sosa:hasSimpleResult ?crop_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageCrop.
+   			BIND (?property_damage + ?crop_damage AS ?total)
+     		FILTER (?total > 0)
+ 		}
+		GROUP BY ?admin_region ?total
+    }
+    BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
+    BIND( IRI(?litePlace) AS ?p ).
+
+ }
 ```
 
 ## Query 11
@@ -441,6 +548,46 @@ WHERE
 * b. Dollar damage (this query is altered to extract all data for the last 5 yrs)
 
 ```sparql
+CONSTRUCT { ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2018 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2019 ?count.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2020 ?count.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2021 ?count.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2022 ?count.
+}
+WHERE
+ {
+    {
+        SELECT ?admin_region ?total
+		WHERE
+        {
+ 		?storm a kwg-ont:NOAAStormSurgeTide;
+               kwg-ont:spatialRelation ?nwZone;
+                  		sosa:isFeatureOfInterestOf ?obs_collection;
+    					kwg-ont:hasTemporalScope ?time .
+    		?nwZone kwg-ont:spatialRelation ?admin_region.
+    		?admin_region a kwg-ont:AdministrativeRegion_3.
+    		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
+            FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2019"^^xsd:gYear)
+            #FILTER (?year = "2020"^^xsd:gYear)
+            #FILTER (?year = "2021"^^xsd:gYear)
+            #FILTER (?year = "2022"^^xsd:gYear)
+    ?obs_collection a kwg-ont:ImpactObservationCollection;
+                    sosa:hasMember ?obs1;
+            		sosa:hasMember ?obs2.
+    		?obs1 sosa:hasSimpleResult ?property_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageProperty.
+    		?obs2 sosa:hasSimpleResult ?crop_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageCrop.
+   			BIND (?property_damage + ?crop_damage AS ?total)
+     		FILTER (?total > 0)
+ 		}
+		GROUP BY ?admin_region ?total
+    }
+    BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
+    BIND( IRI(?litePlace) AS ?p ).
+ }
 ```
 
 ## Query 12
@@ -526,6 +673,47 @@ WHERE
  * b. dollarDamageOfDebrisFlowEventsImpactingPlace2021 (this query is altered to extract all data for the last 5 yrs)
  
 ```sparql
+CONSTRUCT { ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2018 ?total.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2019 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2020 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2021 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2022 ?count.
+}
+WHERE
+ {
+    {
+        SELECT ?admin_region ?total
+		WHERE
+        {
+ 		  ?debris_flow a kwg-ont:NOAADebrisFlow;
+    		 		kwg-ont:spatialRelation ?nwZone;
+                  		sosa:isFeatureOfInterestOf ?obs_collection;
+    					kwg-ont:hasTemporalScope ?time .
+    		?nwZone kwg-ont:spatialRelation ?admin_region.
+    		?admin_region a kwg-ont:AdministrativeRegion_3.
+    		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
+            FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2019"^^xsd:gYear)
+            #FILTER (?year = "2020"^^xsd:gYear)
+            #FILTER (?year = "2021"^^xsd:gYear)
+            #FILTER (?year = "2022"^^xsd:gYear)
+    ?obs_collection a kwg-ont:ImpactObservationCollection;
+                    sosa:hasMember ?obs1;
+            		sosa:hasMember ?obs2.
+    		?obs1 sosa:hasSimpleResult ?property_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageProperty.
+    		?obs2 sosa:hasSimpleResult ?crop_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageCrop.
+   			BIND (?property_damage + ?crop_damage AS ?total)
+     		FILTER (?total > 0)
+ 		}
+		GROUP BY ?admin_region ?total
+    }
+    BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
+    BIND( IRI(?litePlace) AS ?p ).
+
+ }
 ```
 
 ## Query 14
