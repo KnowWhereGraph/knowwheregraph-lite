@@ -631,6 +631,48 @@ WHERE
 * b. dollarDamageOfFloodsImpactingPlace2021 (this query is altered to extract all data for the last 5 yrs)
 
 ```sparql
+CONSTRUCT { ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2018 ?total.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2019 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2020 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2021 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2022 ?count.
+}
+WHERE
+ {
+    {
+        SELECT ?admin_region ?total
+		WHERE
+        {
+ 		  ?debris_flow a kwg-ont:NOAADebrisFlow;
+    		 		kwg-ont:spatialRelation ?nwZone;
+                  		sosa:isFeatureOfInterestOf ?obs_collection;
+    					kwg-ont:hasTemporalScope ?time .
+    		?nwZone kwg-ont:spatialRelation ?admin_region.
+    		?admin_region a kwg-ont:AdministrativeRegion_3.
+    		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
+            FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2019"^^xsd:gYear)
+            #FILTER (?year = "2020"^^xsd:gYear)
+            #FILTER (?year = "2021"^^xsd:gYear)
+            #FILTER (?year = "2022"^^xsd:gYear)
+    ?obs_collection a kwg-ont:ImpactObservationCollection;
+                    sosa:hasMember ?obs1;
+            		sosa:hasMember ?obs2.
+    		?obs1 sosa:hasSimpleResult ?property_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageProperty.
+    		?obs2 sosa:hasSimpleResult ?crop_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageCrop.
+   			BIND (?property_damage + ?crop_damage AS ?total)
+     		FILTER (?total > 0)
+ 		}
+		GROUP BY ?admin_region ?total
+    }
+    BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
+    BIND( IRI(?litePlace) AS ?p ).
+
+ }
+
 ```
 
 ## Query 13
