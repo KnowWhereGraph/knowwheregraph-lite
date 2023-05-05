@@ -78,6 +78,7 @@ WHERE
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
     BIND( IRI(?liteHazard) AS ?h ).
  }
+#GROUP BY ?hazard
 ```
 
 * c. damageToInfrastructureInDollars (ONLY NOAA hazards have this information) 
@@ -115,12 +116,12 @@ WHERE
     BIND(STRAFTER(STR(?hazard), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
     BIND( IRI(?liteHazard) AS ?h ).
-     
- }
+}
  ```
  ## Query 3
  
  * Get all hazard events, their name, start date, end date, and KWG entity
+ * a. NOAA Hazards
  ```sparql
 CONSTRUCT { ?h a kwgl-ont:HazardEvent.
     		?h kwgl-ont:hasName ?name.
@@ -130,7 +131,7 @@ CONSTRUCT { ?h a kwgl-ont:HazardEvent.
 }
 WHERE
  {
-    ?hazard a kwg-ont:Hazard;
+    ?hazard a kwg-ont:NOAAHazardEvent;
     		rdfs:label ?name;
       		kwg-ont:hasTemporalScope ?time.
      ?time time:hasBeginning/time:inXSDDateTime | time:inXSDDate ?startTime;
@@ -142,8 +143,82 @@ WHERE
     BIND(STRAFTER(STR(?hazard), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
     BIND( IRI(?liteHazard) AS ?h ).
- }
+}
  ```
+ 
+ * b. MTBS Fires
+ ```sparql
+ CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    		?h kwgl-ont:hasName ?name.
+			?h kwgl-ont:hasStartDate ?startTime.
+			?h kwgl-ont:hasEndDate ?endTime.
+			?h kwgl-ont:hasKWGEntity ?hazard_uri.
+}
+WHERE
+ {
+    ?hazard a kwg-ont:MTBSFire;
+    		rdfs:label ?name;
+      		kwg-ont:hasTemporalScope ?time.
+     ?time time:hasBeginning/time:inXSDDateTime | time:inXSDDate ?startTime;
+          time:hasEnd/time:inXSDDateTime | time:inXSDDate ?endTime .
+    BIND(REPLACE(str(?hazard),str("kwgr:"), str("http://stko-kwg.geog.ucsb.edu/lod/resource/")) as ?uri)
+    #uncomment below line if you want URI format but then ?hazard and ?hazard_uri would be the same 
+    BIND(URI(?uri) as ?hazard_uri)
+    
+    BIND(STRAFTER(STR(?hazard), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
+    BIND( IRI(?liteHazard) AS ?h ).
+}
+```
+
+* c. NIFC Fires
+```sparql
+CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    		?h kwgl-ont:hasName ?name.
+			?h kwgl-ont:hasStartDate ?startTime.
+			?h kwgl-ont:hasEndDate ?endTime.
+			?h kwgl-ont:hasKWGEntity ?hazard_uri.
+}
+WHERE
+ {
+    ?hazard a kwg-ont:NIFCFire;
+    		rdfs:label ?name;
+      		kwg-ont:hasTemporalScope ?time.
+     ?time time:hasBeginning/time:inXSDDate ?startTime;
+          time:hasEnd/time:inXSDDate ?endTime .
+    BIND(REPLACE(str(?hazard),str("kwgr:"), str("http://stko-kwg.geog.ucsb.edu/lod/resource/")) as ?uri)
+    #uncomment below line if you want URI format but then ?hazard and ?hazard_uri would be the same 
+    BIND(URI(?uri) as ?hazard_uri)
+    
+    BIND(STRAFTER(STR(?hazard), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
+    BIND( IRI(?liteHazard) AS ?h ).
+}
+```
+
+* d. Earthquakes
+```sparql
+CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    		?h kwgl-ont:hasName ?name.
+			?h kwgl-ont:hasStartDate ?startTime.
+			?h kwgl-ont:hasEndDate ?startTime.
+			?h kwgl-ont:hasKWGEntity ?hazard_uri.
+}
+WHERE
+ {
+    ?hazard a kwg-ont:Earthquake;
+    		rdfs:label ?name;
+      		kwg-ont:hasTemporalScope ?time.
+     ?time time:inXSDDateTime ?startTime .
+    BIND(REPLACE(str(?hazard),str("kwgr:"), str("http://stko-kwg.geog.ucsb.edu/lod/resource/")) as ?uri)
+    #uncomment below line if you want URI format but then ?hazard and ?hazard_uri would be the same 
+    BIND(URI(?uri) as ?hazard_uri)
+    
+    BIND(STRAFTER(STR(?hazard), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
+    BIND( IRI(?liteHazard) AS ?h ).
+}
+```
  
  ## Query 4
  * Get all places, their name, and KWG entity 
@@ -266,36 +341,47 @@ WHERE
  }
 ```
 
-* b. dollarDamageOfFiresImpactingPlace2021
+* b. Dollar damage is calculated on the kwg-ont:NOAAWildfire, because that is the only dataset that records financial loss/impact
 ```sparql
-CONSTRUCT { ?p kwgl-ont:numberOfHurricanesImpactingPlace2018 ?count.
-   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2019 ?count.
-   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2020 ?count.
-   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2021 ?count.
-   # ?p kwgl-ont:numberOfHurricanesImpactingPlace2022 ?count.
+CONSTRUCT { #?p kwgl-ont:dollarDamageOfFiresImpactingPlace2018 ?total.
+    #?p kwgl-ont:dollarDamageOfFiresImpactingPlace2019 ?total.
+   #?p kwgl-ont:dollarDamageOfFiresImpactingPlace2020 ?total.
+   # ?p kwgl-ont:dollarDamageOfFiresImpactingPlace2021 ?total.
+    ?p kwgl-ont:dollarDamageOfFiresImpactingPlace2022 ?total.
 }
 WHERE
  {
     {
-        SELECT ?admin_region (COUNT (DISTINCT ?hurricane) AS ?count) 
+        SELECT ?admin_region ?total
 		WHERE
- 		{
-            {?hurricane a kwg-ont:NOAAHurricane} UNION {?hurricane a kwg-ont:NOAAMarineHurricaneTyphoon}
-    		 ?hurricane kwg-ont:spatialRelation ?admin_region;
+ 		{?fire a kwg-ont:NOAAWildfire;
+    		 			kwg-ont:spatialRelation ?nwZone;
+                  		sosa:isFeatureOfInterestOf ?obs_collection;
     					kwg-ont:hasTemporalScope ?time .
-    		?admin_region a kwg-ont:AdministrativeRegion.
+    		?nwZone kwg-ont:spatialRelation ?admin_region.
+    		?admin_region a kwg-ont:AdministrativeRegion_3.
     		?time time:hasBeginning/time:inXSDgYear | time:inXSDgYear ?year .
-    		FILTER (?year = "2018"^^xsd:gYear)
+            #FILTER (?year = "2018"^^xsd:gYear)
             #FILTER (?year = "2019"^^xsd:gYear)
             #FILTER (?year = "2020"^^xsd:gYear)
             #FILTER (?year = "2021"^^xsd:gYear)
-            #FILTER (?year = "2022"^^xsd:gYear)
+            FILTER (?year = "2022"^^xsd:gYear)
+    ?obs_collection a kwg-ont:ImpactObservationCollection;
+                    sosa:hasMember ?obs1;
+            		sosa:hasMember ?obs2.
+    		?obs1 sosa:hasSimpleResult ?property_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageProperty.
+    		?obs2 sosa:hasSimpleResult ?crop_damage;
+    	 			sosa:observedProperty kwgr:impactObservableProperty.damageCrop.
+   			BIND (?property_damage + ?crop_damage AS ?total)
+     		FILTER (?total > 0)
  		}
-		GROUP BY ?admin_region
+		GROUP BY ?admin_region ?total
     }
     BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
     BIND( IRI(?litePlace) AS ?p ).
+
  }
 ```
 
@@ -342,10 +428,10 @@ WHERE
 
 ```sparql
 CONSTRUCT { ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2018 ?total.
-   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2019 ?count.
-   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2020 ?count.
-   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2021 ?count.
-   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2022 ?count.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2019 ?total.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2020 ?total.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2021 ?total.
+   # ?p kwgl-ont:dollarDamageOfHurricanesImpactingPlace2022 ?total.
 }
 WHERE
  {
@@ -466,10 +552,10 @@ WHERE
 
 ```sparql
 CONSTRUCT { ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2018 ?total.
-   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2019 ?count.
-   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2020 ?count.
-   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2021 ?count.
-   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2022 ?count.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2019 ?total.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2020 ?total.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2021 ?total.
+   # ?p kwgl-ont:dollarDamageOfTornadoesImpactingPlace2022 ?total.
 }
 WHERE
  {
@@ -549,10 +635,10 @@ WHERE
 
 ```sparql
 CONSTRUCT { ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2018 ?total.
-   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2019 ?count.
-   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2020 ?count.
-   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2021 ?count.
-   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2022 ?count.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2019 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2020 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2021 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormSurgesImpactingPlace2022 ?total.
 }
 WHERE
  {
@@ -631,11 +717,11 @@ WHERE
 * b. dollarDamageOfFloodsImpactingPlace2021 (this query is altered to extract all data for the last 5 yrs)
 
 ```sparql
-CONSTRUCT { ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2018 ?total.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2019 ?count.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2020 ?count.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2021 ?count.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2022 ?count.
+CONSTRUCT { ?p kwgl-ont:dollarDamageOfFloodsImpactingPlace2018 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormFloodsImpactingPlace2019 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormFloodsImpactingPlace2020 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormFloodsImpactingPlace2021 ?total.
+   # ?p kwgl-ont:dollarDamageOfStormFloodsImpactingPlace2022 ?total.
 }
 WHERE
  {
@@ -643,8 +729,8 @@ WHERE
         SELECT ?admin_region ?total
 		WHERE
         {
- 		  ?debris_flow a kwg-ont:NOAADebrisFlow;
-    		 		kwg-ont:spatialRelation ?nwZone;
+ 		  {?flood a kwg-ont:NOAAFlood} UNION {?flood a kwg-ont:NOAAFlashFlood} UNION {?flood a kwg-ont:NOAACoastalFlood} UNION {?flood a kwg-ont:NOAALakeshoreFlood}
+    		 ?flood kwg-ont:spatialRelation ?nwZone;
                   		sosa:isFeatureOfInterestOf ?obs_collection;
     					kwg-ont:hasTemporalScope ?time .
     		?nwZone kwg-ont:spatialRelation ?admin_region.
@@ -670,9 +756,7 @@ WHERE
     BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
     BIND( IRI(?litePlace) AS ?p ).
-
- }
-
+}
 ```
 
 ## Query 13
@@ -716,10 +800,10 @@ WHERE
  
 ```sparql
 CONSTRUCT { ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2018 ?total.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2019 ?count.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2020 ?count.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2021 ?count.
-   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2022 ?count.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2019 ?total.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2020 ?total.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2021 ?total.
+   # ?p kwgl-ont:dollarDamageOfLandslidesImpactingPlace2022 ?total.
 }
 WHERE
  {
@@ -754,8 +838,7 @@ WHERE
     BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
     BIND( IRI(?litePlace) AS ?p ).
-
- }
+}
 ```
 
 ## Query 14
@@ -990,9 +1073,11 @@ WHERE
 
 * Get all fires and the type of Fire
 * Note : fire type as named individuals versus string
+* a.
 
 ```sparql
-CONSTRUCT { ?h a kwgl-ont:Fire.
+CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    ?h a kwgl-ont:Fire.
     ?h kwgl-ont:isOfFireType ?ft.
 }
 WHERE
@@ -1013,11 +1098,64 @@ WHERE
  }
  ```
  
+ * b. MTBS fire
+ 
+```sparql
+CONSTRUCT { 
+    ?h a kwgl-ont:HazardEvent.
+    ?h a kwgl-ont:Fire.
+    ?h kwgl-ont:isOfFireType ?ft.
+}
+WHERE
+ {
+     ?fire a kwg-ont:MTBSFire;
+            a ?fire_type.
+    ?fire_type rdfs:subClassOf kwg-ont:Fire;
+    	rdfs:label ?fire_type_label.
+    
+ 	BIND(STRAFTER(STR(?fire), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
+    BIND( IRI(?liteHazard) AS ?h ).
+    
+    
+    BIND(STRAFTER(STR(?fire_type), "http://stko-kwg.geog.ucsb.edu/lod/ontology/") as ?fType)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?fType ) as ?liteFType)
+    BIND( IRI(?liteFType) AS ?ft ).
+ }
+ ```
+ 
+ * c. NIFC Fire
+ 
+```sparql
+CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    ?h a kwgl-ont:Fire.
+    ?h kwgl-ont:isOfFireType ?ft.
+}
+WHERE
+ {
+     ?fire a kwg-ont:NIFCFire;
+            a ?fire_type.
+    ?fire_type rdfs:subClassOf kwg-ont:Fire;
+    	rdfs:label ?fire_type_label.
+    
+ 	BIND(STRAFTER(STR(?fire), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?hazardName)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
+    BIND( IRI(?liteHazard) AS ?h ).
+    
+    
+    BIND(STRAFTER(STR(?fire_type), "http://stko-kwg.geog.ucsb.edu/lod/ontology/") as ?fType)
+    BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?fType ) as ?liteFType)
+    BIND( IRI(?liteFType) AS ?ft ).
+ }
+ ```
+
+ 
  ## Query 17
  * Get all hurricanes
  
 ```sparql
-CONSTRUCT { ?h a kwgl-ont:Hurricane.
+CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    ?h a kwgl-ont:Hurricane.
 }
 WHERE
  {
@@ -1033,7 +1171,8 @@ WHERE
 * Get all tornadoes
 
 ```sparql
-CONSTRUCT { ?h a kwgl-ont:Tornado.
+CONSTRUCT { ?h a kwgl-ont:HazardEvent.
+    ?h a kwgl-ont:Tornado.
 }
 WHERE
  {
@@ -1049,7 +1188,8 @@ WHERE
 * Get all earthquakes
 
 ```sparql
-CONSTRUCT { ?h a kwgl-ont:Earthquake.
+ CONSTRUCT {?h a kwgl-ont:HazardEvent.
+    ?h a kwgl-ont:Earthquake.
 }
 WHERE
  {
@@ -1058,7 +1198,6 @@ WHERE
     BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?hazardName ) as ?liteHazard)
     BIND( IRI(?liteHazard) AS ?h ).
  }
-
 ```
 
 ## Query 20
@@ -1168,11 +1307,4 @@ WHERE
     BIND( IRI(?litePlace) AS ?h ).
  }
 ```
-
-
-
-
- 
- 
- 
 
