@@ -846,6 +846,43 @@ WHERE
 * a. averageHeatingDegreeDaysPerMonth
 
 ```sparql
+CONSTRUCT { ?climate_division a kwg-lite:Place.
+    		?climate_division kwg-lite:averageHeatingDegreeDaysPerMonthJan2021 ?hdd_mean. #change predicate month according to the month in the FILTER below
+}
+WHERE
+ {
+    ?climate_division a kwg-ont:USClimateDivision;
+                  		sosa:isFeatureOfInterestOf ?obs_collection.
+    	   ?obs_collection sosa:hasMember ?obs_collection_hdd.
+    		
+    		?obs_collection_hdd sosa:hasMember ?obs_hdd;
+    	 		sosa:observedProperty kwgr:climateObservableProperty.HDD.
+     		?obs_hdd sosa:hasResult ?hdd;
+                      sosa:resultTime ?hdd_months.
+    		?hdd kwg-ont:mean/qudt:numericValue ?hdd_mean.
+    		BIND(SUBSTR(STR(?hdd_months), 1, 4) as ?year)
+			BIND(SUBSTR(STR(?hdd_months), 6, 2) as ?month)
+    	    FILTER (?hdd_mean >0)
+    FILTER (?year = '2021')#change year according to the predicate year and generate results
+    		FILTER (?month = '01') #Jan
+    		#FILTER (?month = '02') #Feb
+    		#FILTER (?month = '03') #Mar
+    		#FILTER (?month = '04') #Apr
+    		#FILTER (?month = '05') #May
+    		#FILTER (?month = '06') #Jun
+    		#FILTER (?month = '07') #Jul
+    		#FILTER (?month = '08') #Aug
+    		#FILTER (?month = '09') #Sep
+    		#FILTER (?month = '10') #Oct
+    		#FILTER (?month = '11') #Nov
+    		#FILTER (?month = '12') #Dec
+    
+ }
+ ```
+ 
+ * b.averageCoolingDegreeDaysPerYear
+ 
+```sparql
 CONSTRUCT { #?p kwgl-ont:averageCoolingDegreeDaysPerMonthJan2021 ?cdd_mean ## uncomment to use ?p if below BIND statements work
     ?climate_division kwgl-ont:averageCoolingDegreeDaysPerMonthJan2021 ?cdd_mean. #change predicate month according to the month in the FILTER below
 }
@@ -881,43 +918,6 @@ WHERE
     #BIND(STRAFTER(STR(?admin_region), "http://stko-kwg.geog.ucsb.edu/lod/resource/") as ?placeName)
     #BIND(CONCAT( "http://stko-kwg.geog.ucsb.edu/lod/lite-resource/", ?placeName ) as ?litePlace)
     #BIND( IRI(?litePlace) AS ?p ).
- }
- ```
- 
- * b.averageCoolingDegreeDaysPerYear
- 
-```sparql
-CONSTRUCT { ?climate_division a kwg-lite:Place.
-    		?climate_division kwg-lite:averageHeatingDegreeDaysPerMonthDec2021 ?hdd_mean. #change predicate month according to the month in the FILTER below
-}
-WHERE
- {
-    ?climate_division a kwg-ont:USClimateDivision;
-                  		sosa:isFeatureOfInterestOf ?obs_collection.
-    	   ?obs_collection sosa:hasMember ?obs_collection_hdd.
-    		
-    		?obs_collection_hdd sosa:hasMember ?obs_hdd;
-    	 		sosa:observedProperty kwgr:climateObservableProperty.CDD.
-     		?obs_hdd sosa:hasResult ?hdd;
-                      sosa:resultTime ?hdd_months.
-    		?hdd kwg-ont:mean/qudt:numericValue ?hdd_mean.
-    		BIND(SUBSTR(STR(?hdd_months), 1, 4) as ?year)
-			BIND(SUBSTR(STR(?hdd_months), 6, 2) as ?month)
-    	    FILTER (?hdd_mean >0)
-    FILTER (?year = '2021')#change year according to the predicate year and generate results
-    		#FILTER (?month = '01') #Jan
-    		#FILTER (?month = '02') #Feb
-    		#FILTER (?month = '03') #Mar
-    		#FILTER (?month = '04') #Apr
-    		#FILTER (?month = '05') #May
-    		#FILTER (?month = '06') #Jun
-    		#FILTER (?month = '07') #Jul
-    		#FILTER (?month = '08') #Aug
-    		#FILTER (?month = '09') #Sep
-    		#FILTER (?month = '10') #Oct
-    		#FILTER (?month = '11') #Nov
-    		FILTER (?month = '12') #Dec
-    
  }
 ```
 
